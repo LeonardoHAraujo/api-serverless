@@ -1,0 +1,9 @@
+app/poetry.lock
+app/__pycache__/*
+app/.env
+app/.venv
+
+app.zip
+
+__pycache__/
+.vscode/
