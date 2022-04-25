@@ -2,7 +2,7 @@
 CODEBUILD_SRC_DIR='/home/leonardo/Documentos/api-serverless'
 BUCKET_NAME='sls-lambda-code-bucket'
 
-if [ $1 == 'deploy' ]; then
+buildZip() {
   if test -f "$CODEBUILD_SRC_DIR/app.zip"; then
       rm -rf $CODEBUILD_SRC_DIR/app.zip
   fi
@@ -13,9 +13,10 @@ if [ $1 == 'deploy' ]; then
 
   find . | grep -E '(__pycache__|\.pyc|\.pyo$)' | xargs rm -rf
 
-  cd $CODEBUILD_SRC_DIR/app
   echo '================= DOWNLOADING DEPENDENCIES ================'
+  cd $CODEBUILD_SRC_DIR/app
   poetry install --no-dev
+
   echo '====================== BUILD PACKAGES ======================'
   zip -r9 $CODEBUILD_SRC_DIR/app.zip . -x '*.venv*' '*.env*' '*poetry.lock*' '*__pycache__/*' '*.vscode/*' '*manage.py*' '*htmlcov/*' '*.pytest_cache/*' '*tests/*'
   cd $CODEBUILD_SRC_DIR/app/.venv/lib/*/site-packages
@@ -24,24 +25,28 @@ if [ $1 == 'deploy' ]; then
 
   echo '========================== MD5SUM =========================='
   md5sum app.zip
+}
 
-  # echo "========================== CREATE BUCKET =========================="
-  # aws s3api create-bucket \
-  #     --bucket $BUCKET_NAME \
-  #     --region us-east-1 \
-  #     --profile my-aws
-  #
-  # echo "========================== UPLOAD =========================="
-  # aws s3 cp app.zip s3://$BUCKET_NAME/app.zip --profile my-aws --region us-east-1
-  #
-  # echo "========================== DEPLOY STACK =========================="
-  # aws cloudformation deploy \
-  #   --template $CODEBUILD_SRC_DIR/stack.yaml \
-  #   --stack-name sls-api-crud \
-  #   --region us-east-1 \
-  #   --profile my-aws \
-  #   --capabilities CAPABILITY_NAMED_IAM \
-  #   --no-fail-on-empty-changeset
+if [ $1 == 'deploy' ]; then
+  buildZip
+
+  echo "========================== CREATE BUCKET =========================="
+  aws s3api create-bucket \
+      --bucket $BUCKET_NAME \
+      --region us-east-1 \
+      --profile my-aws
+
+  echo "========================== UPLOAD =========================="
+  aws s3 cp app.zip s3://$BUCKET_NAME/app.zip --profile my-aws --region us-east-1
+
+  echo "========================== DEPLOY STACK =========================="
+  aws cloudformation deploy \
+    --template $CODEBUILD_SRC_DIR/stack.yaml \
+    --stack-name sls-api-crud \
+    --region us-east-1 \
+    --profile my-aws \
+    --capabilities CAPABILITY_NAMED_IAM \
+    --no-fail-on-empty-changeset
 fi
 
 

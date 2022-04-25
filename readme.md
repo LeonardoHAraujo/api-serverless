@@ -8,5 +8,5 @@ OBS: Ainda falta configurar
 - Melhorar o build.sh para diferentes comandos.
 - Ajeitar o build para recriar a pilha quando for rodar novamente.
 - Authorizer (mesmo que simples, sem integrações).
-- Criar um banco no Dynamo.
+- [x] Criar uma tabela no Dynamo.
 - Desenvolver a estrutura de código para suportar as rotas da app.
