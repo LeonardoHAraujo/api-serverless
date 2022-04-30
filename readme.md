@@ -5,8 +5,6 @@ acordo com suas credenciais AWS e o rodar e a mágica estará feita.
 
 OBS: Ainda falta configurar
 - [x] Ajeitar o IAM para a lambda acessar o DynamoDB.
-- Melhorar o build.sh para diferentes comandos.
-- Ajeitar o build para recriar a pilha quando for rodar novamente.
+- [x] Melhorar o build.sh para diferentes comandos.
 - Authorizer (mesmo que simples, sem integrações).
 - [x] Criar uma tabela no Dynamo.
-- Desenvolver a estrutura de código para suportar as rotas da app.

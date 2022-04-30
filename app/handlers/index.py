@@ -2,10 +2,13 @@ import json
 
 
 def handler(event, context):
-    return {
-      'headers': {
-        'Content-Type': 'application/json'
-      },
-      'statusCode': 200,
-      'body': json.dumps(event)
-    }
+    '''Main function.'''
+
+    rep = {'headers': {}}
+
+    rep['statusCode'] = 200
+    rep['body'] = json.dumps(event)
+
+    rep['headers']['Content-Type'] = 'application/json'
+
+    return rep
