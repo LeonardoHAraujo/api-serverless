@@ -20,6 +20,7 @@ Como rodar:
     - `./build.sh update`
     - `./build.sh clean`
 
+
     ```
     deploy: Faz upload do código e constrói toda a pilha.
     update: Atualiza código das funções listadas nele e atualiza a pilha.
