@@ -1,43 +1,47 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: My API Gateway and Lambda function - CRUD
+Description: My API Gateway and Lambda function
 
+# Parameters for reference on Resources.
 Parameters:
   apiGatewayName:
     Type: String
     Default: slsApiRest
   apiGatewayStageName:
     Type: String
-    AllowedPattern: "[a-z0-9]+"
-    Default: call
+    AllowedPattern: '[a-z0-9]+'
+    Default: dev
+  apiGatewayAuthorizerName:
+    Type: String
+    Default: slsApiRestAuth
   apiGatewayHTTPMethod:
     Type: String
     Default: GET
   lambdaFunctionName:
     Type: String
-    AllowedPattern: "[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+"
+    AllowedPattern: '[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+'
     Default: slsFunc
+  authFunctionName:
+    Type: String
+    AllowedPattern: '[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+'
+    Default: slsAuth
   S3Bucket:
     Type: String
-    Description: Bucket para repositório do código da lambda
     Default: sls-lambda-code-bucket
   S3Key:
     Type: String
-    Description: O nome do ZIP no bucket
     Default: app.zip
   HashKeyElementName:
     Type: String
     Default: OpsId
-    Description: Hash Key Name
   HashKeyElementType:
     Type: String
     Default: S
-    Description: Hash Key Type
 
+# Resources for created in aws
 Resources:
   apiGateway:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Description: Api para CRUD serverless
       EndpointConfiguration:
         Types:
           - REGIONAL
@@ -46,8 +50,11 @@ Resources:
   apiGatewayRootMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref apiGatewayAuthorizer
       HttpMethod: !Ref apiGatewayHTTPMethod
+      RequestParameters:
+        method.request.header.Authorization: true
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY
@@ -65,15 +72,41 @@ Resources:
       RestApiId: !Ref apiGateway
       StageName: !Ref apiGatewayStageName
 
+  apiGatewayAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      AuthorizerCredentials: !GetAtt apiAuthorizerIAMRole.Arn
+      AuthorizerResultTtlInSeconds: 300
+      AuthorizerUri: !Sub
+        - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${authArn}/invocations
+        - authArn: !GetAtt authFunction.Arn
+      IdentitySource: method.request.header.Authorization
+      Name: !Ref apiGatewayAuthorizerName
+      RestApiId: !Ref apiGateway
+      Type: TOKEN
+
   lambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       Code:
         S3Bucket: !Ref S3Bucket
         S3Key: !Ref S3Key
-      Description: Função lambda para composição do CRUD
+      Description: Lambda function for main responsability
       FunctionName: !Ref lambdaFunctionName
       Handler: handlers.index.handler
+      MemorySize: 128
+      Role: !GetAtt lambdaIAMRole.Arn
+      Runtime: python3.8
+
+  authFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3Key
+      Description: Lambda function for authorizer
+      FunctionName: !Ref authFunctionName
+      Handler: auth.index.handler
       MemorySize: 128
       Role: !GetAtt lambdaIAMRole.Arn
       Runtime: python3.8
@@ -84,9 +117,6 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt lambdaFunction.Arn
       Principal: apigateway.amazonaws.com
-      # note: if route *not* at API Gateway root, `SourceArn` would take the form of:
-      #               arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/${apiGatewayStageName}/${apiGatewayHTTPMethod}/PATH_PART
-      # SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/${apiGatewayStageName}/${apiGatewayHTTPMethod}/
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*/*'
 
   lambdaIAMRole:
@@ -120,10 +150,38 @@ Resources:
                   - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${lambdaFunctionName}:*
           PolicyName: lambda
 
+  apiAuthorizerIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - lambda:invokeFunction
+                Effect: Allow
+                Resource: !GetAtt authFunction.Arn
+          PolicyName: lambda
+
   lambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${lambdaFunctionName}
+      RetentionInDays: 90
+
+  authLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${authFunctionName}
       RetentionInDays: 90
 
   opsTable:
@@ -148,6 +206,9 @@ Outputs:
 
   lambdaArn:
     Value: !GetAtt lambdaFunction.Arn
+
+  authArn:
+    Value: !GetAtt authFunction.Arn
 
   ops:
     Description: Table Created using this template.

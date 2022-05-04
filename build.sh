@@ -3,6 +3,7 @@
 KEY_S3='app.zip'
 PROFILE='my-aws'
 REGION='us-east-1'
+STACK_FILE='stack.yaml'
 STACK_NAME='sls-api-crud'
 BUCKET_NAME='sls-lambda-code-bucket'
 CODEBUILD_SRC_DIR='/home/leonardo/Documentos/api-serverless'
@@ -54,6 +55,7 @@ if [ $1 == 'deploy' ]; then
       --bucket $BUCKET_NAME \
       --region $REGION \
       --profile $PROFILE
+
   else
     echo "Bucket $BUCKET_NAME already exists."
   fi
@@ -67,13 +69,18 @@ if [ $1 == 'deploy' ]; then
   fi
 
   echo "========================== DEPLOY STACK =========================="
-  aws cloudformation deploy \
-    --template $CODEBUILD_SRC_DIR/stack.yaml \
-    --stack-name $STACK_NAME \
-    --region $REGION \
-    --profile $PROFILE \
-    --capabilities CAPABILITY_NAMED_IAM \
-    --no-fail-on-empty-changeset
+  if ! aws cloudformation describe-stacks --region $REGION --profile $PROFILE --stack-name $STACK_NAME; then
+    aws cloudformation deploy \
+      --template $CODEBUILD_SRC_DIR/$STACK_FILE \
+      --stack-name $STACK_NAME \
+      --region $REGION \
+      --profile $PROFILE \
+      --capabilities CAPABILITY_NAMED_IAM \
+      --no-fail-on-empty-changeset
+
+  else
+    echo "Stack $STACK_NAME already exists."
+  fi
 
   buildClean
 
@@ -97,9 +104,29 @@ elif [ $1 == 'update' ]; then
     aws s3 cp $KEY_S3 s3://$BUCKET_NAME/$KEY_S3 --profile $PROFILE --region $REGION
   fi
 
+  if ! aws cloudformation describe-stacks --region $REGION --profile $PROFILE --stack-name $STACK_NAME; then
+    echo "Stack $STACK_NAME does not exist, please run deploy."
+
+  else
+    aws cloudformation deploy \
+      --template $CODEBUILD_SRC_DIR/$STACK_FILE \
+      --stack-name $STACK_NAME \
+      --region $REGION \
+      --profile $PROFILE \
+      --capabilities CAPABILITY_NAMED_IAM \
+      --no-fail-on-empty-changeset
+  fi
+
   # List of functions to update.
   aws lambda update-function-code \
     --function-name slsFunc \
+    --s3-bucket $BUCKET_NAME \
+    --s3-key $KEY_S3 \
+    --region $REGION \
+    --profile $PROFILE
+
+  aws lambda update-function-code \
+    --function-name slsAuth \
     --s3-bucket $BUCKET_NAME \
     --s3-key $KEY_S3 \
     --region $REGION \
