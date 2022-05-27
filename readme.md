@@ -1,30 +1,33 @@
 # API Serverless AWS
 
-Criação de estrutura inicial para implementação de uma api gateway com cloudformation.
+*Powered by Leonardo Araújo*
 
-Como rodar:
-- Parametrize o seu `build.sh` com as informações necessárias de acordo com sua aws. Exemplo:
+Creation of an initial structure to implement a gateway api with cloudformation.
+
+## How to run
+
+- Parameterize your `build.sh` with the necessary information according to your aws. Example:
 
     ```
-    KEY_S3='app.zip' # Nome do arquivo zip/code.
-    PROFILE='my-aws' # Seu profile na aws (~/.aws/credentials).
+    KEY_S3='app.zip' # Name of file zip/code.
+    PROFILE='my-aws' # Your profile in aws (~/.aws/credentials).
     REGION='us-east-1' # A região que deseja operar.
-    STACK_FILE='stack.yaml' # A pilha para seu cloudformation.
-    STACK_NAME='sls-api-crud' # Nome da pilha la no cloudformation da aws.
-    BUCKET_NAME='sls-lambda-code-bucket' # Nome do bucket para guardar o code.
-    CODEBUILD_SRC_DIR='/home/leonardo/Documentos/api-serverless' # Diretório.
+    STACK_FILE='stack.yaml' # Name file for your stack cloudformation.
+    STACK_NAME='sls-api-crud' # Name of stack into cloudformation aws.
+    BUCKET_NAME='sls-lambda-code-bucket' # Bucket name for store code.
+    CODEBUILD_SRC_DIR='/home/leonardo/Documentos/api-serverless' # Directory.
     ```
 
-- Após isso você poderá rodar três comandos.
+- After this, you can run the following commands:
     - `./build.sh deploy`
     - `./build.sh update`
     - `./build.sh clean`
 
     ```
-    deploy: Faz upload do código e constrói toda a pilha.
-    update: Atualiza código das funções listadas nele e atualiza a pilha.
-    clean: Apaga tudo. Desde o bucket com o código ate a pilha.
+    deploy: Make upload of code and create stack.
+    update: Update code of functions list in build and update stack.
+    clean: Delete all. Bucket with code and stack clear.
     ```
 
-- Após isso, basta desenvolver a estrutura do código e a pilha, pois a infra é automatizada para deploy.
+- After this, can you developer a structure of code and stack, because the deploy is automatic.
 
